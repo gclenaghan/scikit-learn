@@ -413,7 +413,7 @@ def precision_recall_curve(y_true, probas_pred, pos_label=None,
     return np.r_[precision[sl], 1], np.r_[recall[sl], 0], thresholds[sl]
 
 
-def roc_curve(y_true, y_score, pos_label=None, sample_weight=None):
+def roc_curve(y_true, y_score, pos_label=None, sample_weight=None, keep_all_thresholds=True):
     """Compute Receiver operating characteristic (ROC)
 
     Note: this implementation is restricted to the binary classification task.
@@ -436,6 +436,12 @@ def roc_curve(y_true, y_score, pos_label=None, sample_weight=None):
 
     sample_weight : array-like of shape = [n_samples], optional
         Sample weights.
+
+    keep_all_thresholds : boolean, optional (default=True)
+        If True, return true and false positive rates for all possible
+        thresholds. If False, filter these to remove some thresholds which are
+        not the best possible for either true or false positive rates while
+        preserving the shape of the plotted curve.
 
     Returns
     -------
@@ -507,6 +513,14 @@ def roc_curve(y_true, y_score, pos_label=None, sample_weight=None):
         tpr = np.repeat(np.nan, tps.shape)
     else:
         tpr = tps / tps[-1]
+
+    if not keep_all_thresholds:
+        #Remove thresholds which would not show up on a plot: three identical fpr or tprs in a row
+        remove_indices = filter(lambda i: (tpr[i-1] == tpr[i] == tpr[i+1]) or (fpr[i-1] == fpr[i] == fpr[i+1]), range(1, len(tpr)-1))
+        tpr = np.delete(tpr, remove_indices)
+        fpr = np.delete(fpr, remove_indices)
+        thresholds = np.delete(thresholds, remove_indices)
+
 
     return fpr, tpr, thresholds
 
